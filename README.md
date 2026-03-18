@@ -9,4 +9,4 @@ yarn install
 yarn dev
 ```
 
-Then open `http://localhost:3000`.
+Then open `http://localhost:3000` or `artovae.vercel.app`
