@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 const paletteMap = {
   ember: {
@@ -97,7 +97,7 @@ const paletteMap = {
     line: "#fef3c7",
     block: "#78350f",
   },
-};
+} as const;
 
 function numericSeed(value: string) {
   return String(value).split("").reduce((total, char, index) => total + char.charCodeAt(0) * (index + 1), 0);
@@ -107,12 +107,12 @@ type SvgOptions = {
   slug: string;
   widthUnits: number;
   heightUnits: number;
-  palette: string;
+  palette: keyof typeof paletteMap | string;
   seed: string;
 };
 
 function buildSvg({ slug, widthUnits, heightUnits, palette, seed }: SvgOptions) {
-  const colors = paletteMap[palette] ?? paletteMap.ember;
+  const colors = paletteMap[palette as keyof typeof paletteMap] ?? paletteMap.ember;
   const base = numericSeed(`${slug}-${seed}-${widthUnits}-${heightUnits}`);
   const width = widthUnits * 384;
   const height = heightUnits * 273;
@@ -156,17 +156,12 @@ function buildSvg({ slug, widthUnits, heightUnits, palette, seed }: SvgOptions) 
   `.trim();
 }
 
-type RouteContext = {
-  params: Promise<{ slug: string }>;
-};
-
-export async function GET(request: NextRequest, { params }: RouteContext) {
-  const searchParams = request.nextUrl.searchParams;
-  const { slug } = await params;
-  const palette = searchParams.get("palette") ?? "ember";
-  const seed = searchParams.get("seed") ?? "1";
-  const widthUnits = Math.max(1, Number(searchParams.get("widthUnits") ?? "1"));
-  const heightUnits = Math.max(1, Number(searchParams.get("heightUnits") ?? "1"));
+export default function handler(req: NextApiRequest, res: NextApiResponse<string>) {
+  const slug = String(req.query.slug ?? "artovae");
+  const palette = String(req.query.palette ?? "ember");
+  const seed = String(req.query.seed ?? "1");
+  const widthUnits = Math.max(1, Number(req.query.widthUnits ?? "1"));
+  const heightUnits = Math.max(1, Number(req.query.heightUnits ?? "1"));
   const svg = buildSvg({
     slug,
     widthUnits,
@@ -175,10 +170,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     seed,
   });
 
-  return new Response(svg, {
-    headers: {
-      "Content-Type": "image/svg+xml",
-      "Cache-Control": "public, max-age=31536000, immutable",
-    },
-  });
+  res.setHeader("Content-Type", "image/svg+xml");
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  res.status(200).send(svg);
 }

@@ -5,6 +5,10 @@ const nextConfig = {
       {
         pathname: "/gallery/**",
       },
+      {
+        pathname: "/static/imgs/**",
+        pathname: "/static/**",
+      },
     ],
   },
 };

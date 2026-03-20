@@ -17,9 +17,9 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background:
+  /* background:
     radial-gradient(circle at top, rgba(245, 158, 11, 0.12), transparent 28%),
-    linear-gradient(180deg, #070707 0%, #050505 40%, #090603 100%);
+    linear-gradient(180deg, #070707 0%, #050505 40%, #090603 100%); */
   color: #f8f4ea;
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
