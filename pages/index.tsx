@@ -9,8 +9,17 @@ const imageFiles = images;
 const DESKTOP_COLUMNS = 8;
 const DESKTOP_ROWS = 8;
 const DESKTOP_CAPACITY = DESKTOP_COLUMNS * DESKTOP_ROWS;
+const INITIAL_BATCH_SIZE = 16;
+const BATCH_SIZE = 12;
 
 function formatLabelFromFilename(filename: string) {
+  if (/^https?:\/\//i.test(filename)) {
+    return {
+      artist: "Community Artist",
+      title: "Featured Artwork",
+    };
+  }
+
   const nameWithoutExtension = filename.replace(/\.[^/.]+$/, "");
   const withoutSource = nameWithoutExtension.replace(/-unsplash$/i, "");
   const tokens = withoutSource.split("-").filter(Boolean);
@@ -29,6 +38,21 @@ function formatLabelFromFilename(filename: string) {
   return { artist, title };
 }
 
+function resolveImageSource(value: string) {
+  if (/^https?:\/\/imgur\.com\//i.test(value)) {
+    const match = value.match(/imgur\.com\/([a-zA-Z0-9]+)/i);
+    if (match) {
+      return `https://i.imgur.com/${match[1]}.jpg`;
+    }
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  return `/static/imgs/${value}`;
+}
+
 const generatedGallery = imageFiles.slice(0, DESKTOP_CAPACITY).map((filename, index) => {
   const section = sections[index % sections.length];
   const { artist, title } = formatLabelFromFilename(filename);
@@ -38,7 +62,7 @@ const generatedGallery = imageFiles.slice(0, DESKTOP_CAPACITY).map((filename, in
     title,
     artist,
     section,
-    src: `/static/imgs/${filename}`,
+    src: resolveImageSource(filename),
   };
 });
 
@@ -205,6 +229,7 @@ export default function Home() {
   const [rows, setRows] = useState(DESKTOP_ROWS);
   const [layoutSeed, setLayoutSeed] = useState(1);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
 
   const visibleItems = useMemo(() => {
     const sectionItems = generatedGallery.filter((item) => item.section === activeSection);
@@ -243,6 +268,27 @@ export default function Home() {
   const packedItems = useMemo(
     () => packGallery(visibleItems, columns, rows, layoutSeed),
     [visibleItems, columns, rows, layoutSeed]
+  );
+
+  useEffect(() => {
+    setVisibleCount(Math.min(INITIAL_BATCH_SIZE, packedItems.length));
+  }, [packedItems]);
+
+  useEffect(() => {
+    if (visibleCount >= packedItems.length) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setVisibleCount((current) => Math.min(current + BATCH_SIZE, packedItems.length));
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [packedItems.length, visibleCount]);
+
+  const displayedItems = useMemo(
+    () => packedItems.slice(0, visibleCount),
+    [packedItems, visibleCount]
   );
 
   return (
@@ -425,7 +471,7 @@ export default function Home() {
         </section>
 
         <section className="grid auto-flow-dense auto-rows-[156px] grid-cols-2 gap-[2px] sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-          {packedItems.map((item) => (
+          {displayedItems.map((item) => (
             <article
               key={item.id}
               className={`overflow-hidden border border-line bg-panel shadow-[0_16px_50px_rgba(0,0,0,0.35)] transition duration-300 hover:-translate-y-1 hover:border-amber-400/30 ${item.className}`}

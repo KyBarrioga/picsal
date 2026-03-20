@@ -6,8 +6,13 @@ const nextConfig = {
         pathname: "/gallery/**",
       },
       {
-        pathname: "/static/imgs/**",
         pathname: "/static/**",
+      },
+    ],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "i.imgur.com",
       },
     ],
   },
