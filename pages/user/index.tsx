@@ -20,6 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { tiles } from "static/costants";
+import Header from "layouts/header";
 
 const GRID_COLUMNS = 8;
 const GRID_ROWS = 4;
@@ -197,45 +198,48 @@ export default function UserTwoPage() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-<header-height>px)] px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-[1400px]">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <p className="text-sm text-stone-400">Drag tiles to reorder the grid.</p>
-        </div>
+    <main>
+      <Header />
+      <div className="min-h-[calc(100vh-<header-height>px)] px-4 pb-8 sm:px-6">
+        <div className="mx-auto max-w-[1400px]">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <p className="text-sm text-stone-400">Drag tiles to reorder the grid.</p>
+          </div>
 
-        <div className="p-0">
-          <div>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              measuring={{
-                droppable: {
-                  strategy: MeasuringStrategy.BeforeDragging,
-                },
-              }}
-              autoScroll={false}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragCancel={handleDragCancel}
-            >
-              <SortableContext items={itemIds} strategy={rectSortingStrategy}>
-                <div
-                  className="grid justify-center gap-0"
-                  style={{ gridTemplateColumns: `repeat(auto-fit, ${TILE_SIZE}px)` }}
-                >
-                  {items.map((item) => (
-                    <SortableTile key={item.id} item={item} />
-                  ))}
-                </div>
-              </SortableContext>
-              <DragOverlay dropAnimation={null}>
-                {activeItem ? (
-                  <div style={{ width: TILE_SIZE, height: TILE_SIZE }}>
-                    <TileCard item={activeItem} isDragging />
+          <div className="p-0">
+            <div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                measuring={{
+                  droppable: {
+                    strategy: MeasuringStrategy.BeforeDragging,
+                  },
+                }}
+                autoScroll={false}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+              >
+                <SortableContext items={itemIds} strategy={rectSortingStrategy}>
+                  <div
+                    className="grid justify-center gap-0"
+                    style={{ gridTemplateColumns: `repeat(auto-fit, ${TILE_SIZE}px)` }}
+                  >
+                    {items.map((item) => (
+                      <SortableTile key={item.id} item={item} />
+                    ))}
                   </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
+                </SortableContext>
+                <DragOverlay dropAnimation={null}>
+                  {activeItem ? (
+                    <div style={{ width: TILE_SIZE, height: TILE_SIZE }}>
+                      <TileCard item={activeItem} isDragging />
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </div>
           </div>
         </div>
       </div>

@@ -84,7 +84,7 @@ export default function LoginPage() {
 
             <div className="mt-8 border-t border-line pt-6 text-sm text-stone-400">
               New to Picsal?{" "}
-              <Link href="#" className="font-medium text-amber-300 transition hover:text-amber-200">
+              <Link href="/signup" className="font-medium text-amber-300 transition hover:text-amber-200">
                 Create an account
               </Link>
             </div>
