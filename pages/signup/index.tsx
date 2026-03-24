@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { supabase } from "lib/supabaseClient";
+import { useRouter } from "next/router";
+import { createClient } from "lib/createBrowserClient";
 
 const artwork = "/static/img/login.jpg";
 const passwordRule = /^(?=.*\d).{8,}$/;
 
 export default function SignupPage() {
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
   const [step, setStep] = useState(1);
   const [hasConsented, setHasConsented] = useState(false);
   const [email, setEmail] = useState("");
@@ -43,9 +46,15 @@ export default function SignupPage() {
 
     setIsSubmitting(true);
 
-    const { error } = await supabase.auth.signUp({
+    const emailRedirectTo =
+      typeof window !== "undefined" ? `${window.location.origin}/auth/confirm?next=/user` : undefined;
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo,
+      },
     });
 
     setIsSubmitting(false);
@@ -55,8 +64,13 @@ export default function SignupPage() {
       return;
     }
 
+    if (data.session) {
+      await router.push("/user");
+      return;
+    }
+
     setIsSubmitted(true);
-    setSuccessMessage("Account created. Check your email to confirm your signup before logging in.");
+    setSuccessMessage("Account created. Check your email to confirm your signup and finish logging in.");
     setEmail("");
     setPassword("");
     setConfirmPassword("");
