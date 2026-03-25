@@ -27,12 +27,32 @@ export default function AuthConfirmPage() {
     }
 
     const nextPath = getNextPath(router.query.next);
+    const code = typeof router.query.code === "string" ? router.query.code : "";
     const tokenHash = typeof router.query.token_hash === "string" ? router.query.token_hash : "";
     const type = typeof router.query.type === "string" ? router.query.type : "email";
 
     let isActive = true;
 
     async function confirmAuth() {
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (!isActive) {
+          return;
+        }
+
+        if (error) {
+          setStatus("error");
+          setMessage(error.message);
+          return;
+        }
+
+        setStatus("success");
+        setMessage("Email confirmed. Redirecting you now...");
+        await router.replace(nextPath);
+        return;
+      }
+
       if (tokenHash) {
         const { error } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
