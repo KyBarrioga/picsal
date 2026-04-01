@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { SubmitEvent, useState } from "react";
 import { useRouter } from "next/router";
 import { createClient } from "lib/createBrowserClient";
 
@@ -30,7 +30,7 @@ export default function SignupPage() {
     setIsSubmitted(false);
   }
 
-  async function handleRequestAccess(event: FormEvent<HTMLFormElement>) {
+  async function handleRequestAccess(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     resetFeedback();
 

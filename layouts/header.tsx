@@ -51,8 +51,6 @@ export default function Header() {
       setIsSigningOut(false);
     }
 
-    console.log(supabase.auth.getUser())
-
     const profileLinkClass =
       "flex h-11 w-11 items-center justify-center rounded-full border border-amber-400/25 bg-[#17120a] text-sm font-semibold uppercase tracking-[0.18em] text-amber-100 transition hover:border-amber-300/60 hover:bg-[#21180b]";
     const logoutButtonClass =

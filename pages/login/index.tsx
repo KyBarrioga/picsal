@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { SubmitEvent, useState } from "react";
 import { useRouter } from "next/router";
 import { createClient } from "lib/createBrowserClient";
+import { api } from "lib/apiClient";
+import { useUserStore } from "store/useUserStore";
 
 const artwork = "/static/img/login.jpg";
 
@@ -16,7 +18,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
     setIsSubmitting(true);
@@ -32,6 +34,11 @@ export default function LoginPage() {
       setErrorMessage(error.message);
       return;
     }
+
+    const response = await api.get("api/user/me");
+    useUserStore.getState().setUser(response.data);
+    const user = useUserStore.getState().user;
+    console.log("Trial", user);
 
     const nextPath =
       typeof router.query.next === "string" && router.query.next.startsWith("/")
