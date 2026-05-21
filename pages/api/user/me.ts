@@ -9,7 +9,7 @@ const IAT_RETRY_DELAY_MS = 1200;
 const IAT_RETRY_ATTEMPTS = 2;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
+  if (req.method !== "GET" && req.method !== "PATCH") {
     res.status(405).json({ message: "You have no permission to access this resource." });
     return;
   }
@@ -22,11 +22,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const response = await fetchUserMeWithRefresh(cookieHeader);
+    let response;
+
+    if (req.method === "GET") {
+      response = await fetchUserMeWithRefresh(cookieHeader);
+    } else {
+      const patchPayload = buildProfilePatchPayload(req.body);
+      console.log("PATCH /api/user/me payload", patchPayload);
+      response = await patchUserMeWithRefresh(cookieHeader, patchPayload);
+    }
+
     forwardSetCookieHeaders(res, response.headers["set-cookie"]);
 
     res.status(response.status).json(response.data);
   } catch (error) {
+    if (error instanceof Error && error.name === "ValidationError") {
+      res.status(422).json({ error: error.message });
+      return;
+    }
+
     if (axios.isAxiosError(error) && error.response) {
       forwardSetCookieHeaders(res, error.response.headers["set-cookie"]);
 
@@ -38,6 +52,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: "Internal server error",
     });
   }
+}
+
+function buildProfilePatchPayload(body: unknown) {
+  const source = body && typeof body === "object" ? body : {};
+  const displayName = "display_name" in source && typeof source.display_name === "string"
+    ? source.display_name.trim()
+    : "";
+  const description = "description" in source && typeof source.description === "string"
+    ? source.description.trim()
+    : "";
+  const profilePicture =
+    "profile_picture" in source && typeof source.profile_picture === "string"
+      ? source.profile_picture.trim()
+      : "";
+
+  if (!displayName) {
+    const error = new Error("Display name is required.");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  return {
+    display_name: displayName,
+    description,
+    profile_picture: profilePicture,
+  };
 }
 
 async function fetchUserMeWithRefresh(cookieHeader: string) {
@@ -85,6 +125,58 @@ async function fetchUserMeWithRefresh(cookieHeader: string) {
   }
 }
 
+async function patchUserMeWithRefresh(
+  cookieHeader: string,
+  payload: {
+    display_name: string;
+    description: string;
+    profile_picture: string;
+  }
+) {
+  try {
+    return await patchUserMeWithIatRetry(cookieHeader, payload);
+  } catch (error) {
+    if (!axios.isAxiosError(error) || !error.response) {
+      throw error;
+    }
+
+    const status = error.response.status;
+    const detail = extractErrorDetail(error.response.data);
+    const canRefresh =
+      (status === 401 || status === 403) &&
+      detail.toLowerCase().includes("authentication credentials");
+
+    if (!canRefresh) {
+      throw error;
+    }
+
+    const refreshResponse = await apiClient.post(
+      "auth/refresh/",
+      {},
+      {
+        headers: {
+          Cookie: cookieHeader,
+        },
+        withCredentials: true,
+      }
+    );
+
+    const refreshedCookieHeader = mergeCookieHeaders(
+      cookieHeader,
+      refreshResponse.headers["set-cookie"]
+    );
+
+    const patchResponse = await patchUserMeWithIatRetry(refreshedCookieHeader, payload);
+
+    patchResponse.headers["set-cookie"] = [
+      ...normalizeSetCookieHeaders(refreshResponse.headers["set-cookie"]),
+      ...normalizeSetCookieHeaders(patchResponse.headers["set-cookie"]),
+    ];
+
+    return patchResponse;
+  }
+}
+
 async function fetchUserMeWithIatRetry(cookieHeader: string, retries = IAT_RETRY_ATTEMPTS) {
   try {
     return await apiClient.get("user/me/", {
@@ -98,6 +190,30 @@ async function fetchUserMeWithIatRetry(cookieHeader: string, retries = IAT_RETRY
 
     await delay(IAT_RETRY_DELAY_MS);
     return fetchUserMeWithIatRetry(cookieHeader, retries - 1);
+  }
+}
+
+async function patchUserMeWithIatRetry(
+  cookieHeader: string,
+  payload: {
+    display_name: string;
+    description: string;
+    profile_picture: string;
+  },
+  retries = IAT_RETRY_ATTEMPTS
+) {
+  try {
+    return await apiClient.patch("user/me/", payload, {
+      headers: buildAuthHeaders(cookieHeader),
+      withCredentials: true,
+    });
+  } catch (error) {
+    if (!shouldRetryForIat(error) || retries <= 0) {
+      throw error;
+    }
+
+    await delay(IAT_RETRY_DELAY_MS);
+    return patchUserMeWithIatRetry(cookieHeader, payload, retries - 1);
   }
 }
 
