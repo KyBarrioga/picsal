@@ -65,7 +65,6 @@ export default function EditProfileDialog() {
 
     async function handleSaveProfile(event: SubmitEvent<HTMLFormElement>) {
         event.preventDefault();
-
         const normalizedDisplayName = displayName.trim();
         const normalizedDescription = description.trim();
 
@@ -82,9 +81,11 @@ export default function EditProfileDialog() {
                 : user?.profile.profile_picture || "";
 
             const response = await api.patch("/api/user/me", {
-                display_name: normalizedDisplayName,
-                description: normalizedDescription,
-                profile_picture: profilePictureUrl,
+                profile: {
+                    display_name: normalizedDisplayName,
+                    description: normalizedDescription,
+                    profile_picture: profilePictureUrl,
+                }
             });
 
             const currentUser = useUserStore.getState().user;

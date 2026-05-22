@@ -56,15 +56,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 function buildProfilePatchPayload(body: unknown) {
   const source = body && typeof body === "object" ? body : {};
-  const displayName = "display_name" in source && typeof source.display_name === "string"
-    ? source.display_name.trim()
+
+  const profileSource =
+    "profile" in source &&
+      source.profile &&
+      typeof source.profile === "object"
+      ? source.profile
+      : {};
+
+  const displayName = "display_name" in profileSource && typeof profileSource.display_name === "string"
+    ? profileSource.display_name.trim()
     : "";
-  const description = "description" in source && typeof source.description === "string"
-    ? source.description.trim()
+  const description = "description" in profileSource && typeof profileSource.description === "string"
+    ? profileSource.description.trim()
     : "";
   const profilePicture =
-    "profile_picture" in source && typeof source.profile_picture === "string"
-      ? source.profile_picture.trim()
+    "profile_picture" in profileSource && typeof profileSource.profile_picture === "string"
+      ? profileSource.profile_picture.trim()
       : "";
 
   if (!displayName) {
@@ -203,7 +211,9 @@ async function patchUserMeWithIatRetry(
   retries = IAT_RETRY_ATTEMPTS
 ) {
   try {
-    return await apiClient.patch("user/me/", payload, {
+    return await apiClient.patch("user/me/", {
+      profile: payload
+    }, {
       headers: buildAuthHeaders(cookieHeader),
       withCredentials: true,
     });
@@ -224,8 +234,8 @@ function buildAuthHeaders(cookieHeader: string) {
     Cookie: cookieHeader,
     ...(accessToken
       ? {
-          Authorization: `Bearer ${accessToken}`,
-        }
+        Authorization: `Bearer ${accessToken}`,
+      }
       : {}),
   };
 }
